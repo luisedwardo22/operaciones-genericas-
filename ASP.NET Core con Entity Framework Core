@@ -38,6 +38,11 @@ public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
     public DbSet<Usuario> Usuarios { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Usuario>().HasIndex(u => u.Correo).IsUnique();
+    }
 }
 
 // Controlador API para gestionar usuarios
@@ -62,14 +67,14 @@ public class UsuariosController : ControllerBase
     public async Task<ActionResult<Usuario>> ObtenerUsuarioPorId(int id)
     {
         var usuario = await _context.Usuarios.FindAsync(id);
-        if (usuario == null) return NotFound();
+        if (usuario == null) return NotFound("Usuario no encontrado.");
         return usuario;
     }
 
     [HttpPost]
-    public async Task<ActionResult<Usuario>> CrearUsuario(Usuario usuario)
+    public async Task<ActionResult<Usuario>> CrearUsuario([FromBody] Usuario usuario)
     {
-        if (_context.Usuarios.Any(u => u.Correo == usuario.Correo))
+        if (await _context.Usuarios.AnyAsync(u => u.Correo == usuario.Correo))
         {
             return BadRequest("El correo electrónico ya está registrado.");
         }
@@ -79,11 +84,17 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> ActualizarUsuario(int id, Usuario usuario)
+    public async Task<IActionResult> ActualizarUsuario(int id, [FromBody] Usuario usuario)
     {
         if (id != usuario.Id) return BadRequest("El ID del usuario no coincide.");
 
-        _context.Entry(usuario).State = EntityState.Modified;
+        var usuarioExistente = await _context.Usuarios.FindAsync(id);
+        if (usuarioExistente == null) return NotFound("Usuario no encontrado.");
+
+        usuarioExistente.Nombre = usuario.Nombre;
+        usuarioExistente.Correo = usuario.Correo;
+        usuarioExistente.FechaDeNacimiento = usuario.FechaDeNacimiento;
+
         await _context.SaveChangesAsync();
         return NoContent();
     }
@@ -92,7 +103,7 @@ public class UsuariosController : ControllerBase
     public async Task<IActionResult> EliminarUsuario(int id)
     {
         var usuario = await _context.Usuarios.FindAsync(id);
-        if (usuario == null) return NotFound();
+        if (usuario == null) return NotFound("Usuario no encontrado.");
 
         _context.Usuarios.Remove(usuario);
         await _context.SaveChangesAsync();
