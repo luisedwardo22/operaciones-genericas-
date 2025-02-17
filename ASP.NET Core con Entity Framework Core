@@ -1,0 +1,101 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Configuración de la base de datos en memoria
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseInMemoryDatabase("UsuariosDB"));
+
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.MapControllers();
+app.Run();
+
+// Modelo de Usuario
+public class Usuario
+{
+    public int Id { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public string Correo { get; set; } = string.Empty;
+    public DateTime FechaDeNacimiento { get; set; }
+}
+
+// Contexto de la base de datos
+public class AppDbContext : DbContext
+{
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    public DbSet<Usuario> Usuarios { get; set; }
+}
+
+// Controlador CRUD
+[ApiController]
+[Route("api/usuarios")]
+public class UsuariosController : ControllerBase
+{
+    private readonly AppDbContext _context;
+
+    public UsuariosController(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<Usuario>>> GetUsuarios()
+    {
+        return await _context.Usuarios.ToListAsync();
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Usuario>> GetUsuario(int id)
+    {
+        var usuario = await _context.Usuarios.FindAsync(id);
+        if (usuario == null) return NotFound();
+        return usuario;
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<Usuario>> PostUsuario(Usuario usuario)
+    {
+        if (_context.Usuarios.Any(u => u.Correo == usuario.Correo))
+        {
+            return BadRequest("El correo electrónico ya está en uso.");
+        }
+        _context.Usuarios.Add(usuario);
+        await _context.SaveChangesAsync();
+        return CreatedAtAction(nameof(GetUsuario), new { id = usuario.Id }, usuario);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> PutUsuario(int id, Usuario usuario)
+    {
+        if (id != usuario.Id) return BadRequest();
+
+        _context.Entry(usuario).State = EntityState.Modified;
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteUsuario(int id)
+    {
+        var usuario = await _context.Usuarios.FindAsync(id);
+        if (usuario == null) return NotFound();
+
+        _context.Usuarios.Remove(usuario);
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+}
