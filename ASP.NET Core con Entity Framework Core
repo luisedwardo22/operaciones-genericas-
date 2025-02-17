@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configuración de la base de datos en memoria
+// Configurar base de datos en memoria para simplificar pruebas
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseInMemoryDatabase("UsuariosDB"));
 
@@ -24,7 +24,7 @@ app.UseAuthorization();
 app.MapControllers();
 app.Run();
 
-// Modelo de Usuario
+// Definición del modelo de Usuario
 public class Usuario
 {
     public int Id { get; set; }
@@ -33,14 +33,14 @@ public class Usuario
     public DateTime FechaDeNacimiento { get; set; }
 }
 
-// Contexto de la base de datos
+// Contexto de la base de datos con Entity Framework Core
 public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
     public DbSet<Usuario> Usuarios { get; set; }
 }
 
-// Controlador CRUD
+// Controlador API para gestionar usuarios
 [ApiController]
 [Route("api/usuarios")]
 public class UsuariosController : ControllerBase
@@ -53,13 +53,13 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Usuario>>> GetUsuarios()
+    public async Task<ActionResult<IEnumerable<Usuario>>> ObtenerUsuarios()
     {
         return await _context.Usuarios.ToListAsync();
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<Usuario>> GetUsuario(int id)
+    public async Task<ActionResult<Usuario>> ObtenerUsuarioPorId(int id)
     {
         var usuario = await _context.Usuarios.FindAsync(id);
         if (usuario == null) return NotFound();
@@ -67,21 +67,21 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<Usuario>> PostUsuario(Usuario usuario)
+    public async Task<ActionResult<Usuario>> CrearUsuario(Usuario usuario)
     {
         if (_context.Usuarios.Any(u => u.Correo == usuario.Correo))
         {
-            return BadRequest("El correo electrónico ya está en uso.");
+            return BadRequest("El correo electrónico ya está registrado.");
         }
         _context.Usuarios.Add(usuario);
         await _context.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetUsuario), new { id = usuario.Id }, usuario);
+        return CreatedAtAction(nameof(ObtenerUsuarioPorId), new { id = usuario.Id }, usuario);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutUsuario(int id, Usuario usuario)
+    public async Task<IActionResult> ActualizarUsuario(int id, Usuario usuario)
     {
-        if (id != usuario.Id) return BadRequest();
+        if (id != usuario.Id) return BadRequest("El ID del usuario no coincide.");
 
         _context.Entry(usuario).State = EntityState.Modified;
         await _context.SaveChangesAsync();
@@ -89,7 +89,7 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteUsuario(int id)
+    public async Task<IActionResult> EliminarUsuario(int id)
     {
         var usuario = await _context.Usuarios.FindAsync(id);
         if (usuario == null) return NotFound();
