@@ -1,0 +1,80 @@
+**Informe sobre 10 Extensiones de Métodos LINQ:
+
+### Introducción
+Language Integrated Query (LINQ) es una característica poderosa de C# que permite realizar consultas sobre colecciones de datos de manera fluida y expresiva. Además de los métodos comunes como `Where`, `OrderBy` y `Select`, LINQ ofrece una variedad de métodos de extensión menos utilizados pero igualmente útiles.
+
+### Métodos de Extensión LINQ
+
+1. **Aggregate**
+   - Realiza una operación acumulativa sobre una colección, aplicando una función de agregación personalizada.
+   - **Ejemplo:**
+     ```csharp
+     int resultado = numeros.Aggregate((total, siguiente) => total + siguiente);
+     ```
+
+2. **Distinct**
+   - Elimina elementos duplicados de una colección.
+   - **Ejemplo:**
+     ```csharp
+     var valoresUnicos = numeros.Distinct();
+     ```
+
+3. **GroupBy**
+   - Agrupa elementos de una colección según una clave específica.
+   - **Ejemplo:**
+     ```csharp
+     var grupos = personas.GroupBy(p => p.Edad);
+     ```
+
+4. **ToDictionary**
+   - Convierte una colección en un diccionario basado en una clave especificada.
+   - **Ejemplo:**
+     ```csharp
+     var diccionario = personas.ToDictionary(p => p.Id);
+     ```
+
+5. **All**
+   - Verifica si todos los elementos de una colección cumplen con una condición.
+   - **Ejemplo:**
+     ```csharp
+     bool todosMayores = numeros.All(n => n > 0);
+     ```
+
+6. **Any**
+   - Verifica si al menos un elemento en la colección cumple con una condición.
+   - **Ejemplo:**
+     ```csharp
+     bool hayNegativos = numeros.Any(n => n < 0);
+     ```
+
+7. **Zip**
+   - Combina dos colecciones elemento por elemento en una nueva colección de pares.
+   - **Ejemplo:**
+     ```csharp
+     var combinados = nombres.Zip(edades, (nombre, edad) => new { nombre, edad });
+     ```
+
+8. **DefaultIfEmpty**
+   - Devuelve un valor predeterminado si la colección está vacía.
+   - **Ejemplo:**
+     ```csharp
+     var listaNoVacia = numeros.DefaultIfEmpty(0);
+     ```
+
+9. **Reverse**
+   - Invierte el orden de los elementos en la colección.
+   - **Ejemplo:**
+     ```csharp
+     var invertidos = numeros.Reverse();
+     ```
+
+10. **Chunk** (Disponible desde .NET 6)
+    - Divide una colección en fragmentos de tamaño específico.
+    - **Ejemplo:**
+      ```csharp
+      var fragmentos = numeros.Chunk(3);
+      ```
+
+### Conclusión
+Estos métodos de extensión de LINQ permiten escribir código más limpio y eficiente. Explorar sus funcionalidades puede ayudar a optimizar consultas y manipulación de datos en C#.
+
