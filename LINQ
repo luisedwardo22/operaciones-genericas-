@@ -1,0 +1,55 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class Program
+{
+    static void Main()
+    {
+        List<int> numeros = new List<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+
+        // Consulta 1: Filtrar números pares
+        var numerosPares = numeros.Where(n => n % 2 == 0);
+        Console.WriteLine("Números pares:");
+        foreach (var num in numerosPares)
+        {
+            Console.WriteLine(num);
+        }
+
+        // Consulta 2: Ordenar de mayor a menor
+        var numerosOrdenados = numeros.OrderByDescending(n => n);
+        Console.WriteLine("\nNúmeros ordenados de mayor a menor:");
+        foreach (var num in numerosOrdenados)
+        {
+            Console.WriteLine(num);
+        }
+
+        // Consulta 3: Seleccionar los primeros 5 números
+        var primerosCinco = numeros.Take(5);
+        Console.WriteLine("\nPrimeros 5 números:");
+        foreach (var num in primerosCinco)
+        {
+            Console.WriteLine(num);
+        }
+
+        // Consulta 4: Omitir los primeros 3 números
+        var omitirTres = numeros.Skip(3);
+        Console.WriteLine("\nLista después de omitir los primeros 3 números:");
+        foreach (var num in omitirTres)
+        {
+            Console.WriteLine(num);
+        }
+
+        // Consulta 5: Obtener el número máximo
+        var maximo = numeros.Max();
+        Console.WriteLine($"\nNúmero máximo: {maximo}");
+
+        // Consulta 6: Obtener el número mínimo
+        var minimo = numeros.Min();
+        Console.WriteLine($"Número mínimo: {minimo}");
+
+        // Consulta 7: Sumar todos los números
+        var suma = numeros.Sum();
+        Console.WriteLine($"Suma total: {suma}");
+    }
+}
