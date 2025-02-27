@@ -1,0 +1,91 @@
+Configuración de JWT en el Proyecto:
+dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+dotnet add package System.IdentityModel.Tokens.Jwt
+confijure jwt :
+{
+  "JwtSettings": {
+    "SecretKey": "ClaveSuperSecreta1234567890",
+    "Issuer": "MAiPI",
+    "Audience": "MisUsuarios",
+    "ExpirationMinutes": 60
+  }
+}
+ Modelo de Usuario y Validaciones:
+using System.ComponentModel.DataAnnotations;
+
+public class Usuario mario 
+{
+    public int Id { get; set; }
+
+    [Required, MinLength(4), MaxLength(20)]
+    public string Username { get; set; }
+
+    [Required, MinLength(8)]
+    public string PasswordHash { get; set; } // Se almacenará encriptada
+}
+Endpoint de Autenticación:
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+
+[Route("api/auth")]
+[ApiController]
+public class AuthController : ControllerBase
+{
+    private static List<Usuario> _usuarios = new List<Usuario>
+    {
+        new Usuario { Id = 1, Username = "admin", PasswordHash = new AuthService(null).HashPassword("admin123") }
+    };
+
+    private readonly AuthService _authService;
+
+    public AuthController(AuthService authService)
+    {
+        _authService = authService;
+    }
+
+    [HttpPost("login")]
+    public IActionResult Login([FromBody] Usuario usuario)
+    {
+        var user = _usuarios.FirstOrDefault(u => u.Username == usuario.Username);
+
+        if (user == null || user.PasswordHash != _authService.HashPassword(usuario.PasswordHash))
+            return Unauthorized(new { mensaje = "Credenciales incorrectas" });
+
+        var token = _authService.GenerateJwtToken(user);
+        return Ok(new { token });
+    }
+}
+Endpoint para Refrescar el Token:
+[HttpPost("refresh")]
+[Authorize]
+public IActionResult RefreshToken()
+{
+    var username = User.Identity.Name;
+    var user = _usuarios.FirstOrDefault(u => u.Username == username);
+
+    if (user == null)
+        return Unauthorized(new { mensaje = "Usuario no válido" });
+
+    var newToken = _authService.GenerateJwtToken(user);
+    return Ok(new { token = newToken });
+}
+proteccion de endpoints:
+[Route("api/protegido")]
+[ApiController]
+public class ProtegidoController : ControllerBase
+{
+    [HttpGet]
+    [Authorize]
+    public IActionResult GetProtegido()
+    {
+        return Ok(new { mensaje = "Este es un endpoint protegido" });
+    }
+}
+Postman o Swagger:
+{
+  "token": "nuevo_token_jwt"
+}
+{
+  "mensaje": "Este es un endpoint protegido"
+}
+
