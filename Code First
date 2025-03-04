@@ -1,0 +1,95 @@
+// Definir las entidades
+public class Producto
+{
+    public int Id { get; set; }
+    public string Nombre { get; set; }
+    public decimal Precio { get; set; }
+    public int Stock { get; set; }
+    public int IdProveedor { get; set; }
+    public int IdCategoria { get; set; }
+    public Proveedor Proveedor { get; set; }
+    public Categoria Categoria { get; set; }
+}
+
+public class Proveedor
+{
+    public int Id { get; set; }
+    public string Nombre { get; set; }
+    public string Contacto { get; set; }
+    public List<Producto> Productos { get; set; }
+}
+
+public class Categoria
+{
+    public int Id { get; set; }
+    public string Nombre { get; set; }
+    public List<Producto> Productos { get; set; }
+}
+
+// Configurar DbContext
+public class AppDbContext : DbContext
+{
+    public DbSet<Producto> Productos { get; set; }
+    public DbSet<Proveedor> Proveedores { get; set; }
+    public DbSet<Categoria> Categorias { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        optionsBuilder.UseSqlServer("Server=.;Database=MiBaseDeDatos;Trusted_Connection=True;");
+    }
+}
+
+// Implementar el controlador de Productos
+[Route("api/[controller]")]
+[ApiController]
+public class ProductosController : ControllerBase
+{
+    private readonly AppDbContext _context;
+
+    public ProductosController(AppDbContext context)
+    {
+        _context = context;
+    }
+
+    // Endpoint para obtener estadísticas de productos
+    [HttpGet("estadisticas")]
+    public IActionResult ObtenerEstadisticas()
+    {
+        var productoMasCaro = _context.Productos.OrderByDescending(p => p.Precio).FirstOrDefault();
+        var productoMasBarato = _context.Productos.OrderBy(p => p.Precio).FirstOrDefault();
+        var sumaPrecios = _context.Productos.Sum(p => p.Precio);
+        var precioPromedio = _context.Productos.Average(p => p.Precio);
+
+        return Ok(new
+        {
+            ProductoMasCaro = productoMasCaro,
+            ProductoMasBarato = productoMasBarato,
+            SumaTotalPrecios = sumaPrecios,
+            PrecioPromedio = precioPromedio
+        });
+    }
+
+    // Endpoint para obtener productos por categoría
+    [HttpGet("categoria/{id}")]
+    public IActionResult ObtenerProductosPorCategoria(int id)
+    {
+        var productos = _context.Productos.Where(p => p.IdCategoria == id).ToList();
+        return Ok(productos);
+    }
+
+    // Endpoint para obtener productos por proveedor
+    [HttpGet("proveedor/{id}")]
+    public IActionResult ObtenerProductosPorProveedor(int id)
+    {
+        var productos = _context.Productos.Where(p => p.IdProveedor == id).ToList();
+        return Ok(productos);
+    }
+
+    // Endpoint para contar el total de productos registrados
+    [HttpGet("total")]
+    public IActionResult ContarTotalProductos()
+    {
+        var totalProductos = _context.Productos.Count();
+        return Ok(new { TotalProductos = totalProductos });
+    }
+}
