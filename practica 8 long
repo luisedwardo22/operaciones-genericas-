@@ -1,0 +1,69 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+
+[ApiController]
+[Route("api/usuarios")]
+public class UsuariosController : ControllerBase
+{
+    private readonly ApplicationDbContext _context;
+    private readonly string logFilePath = "user_logs.json";
+
+    public UsuariosController(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    [HttpPost("registrar")]
+    public async Task<IActionResult> RegistrarUsuario([FromBody] Usuario usuario)
+    {
+        if (usuario == null)
+            return BadRequest("Datos inválidos");
+
+        _context.Usuarios.Add(usuario);
+        await _context.SaveChangesAsync();
+
+        RegistrarEnLog(usuario);
+
+        return Ok("Usuario registrado correctamente");
+    }
+
+    private void RegistrarEnLog(Usuario usuario)
+    {
+        var logEntry = new
+        {
+            Id = usuario.Id,
+            Nombre = usuario.Nombre,
+            Email = usuario.Email,
+            FechaRegistro = DateTime.UtcNow
+        };
+
+        List<object> logs = new List<object>();
+
+        if (System.IO.File.Exists(logFilePath))
+        {
+            string existingLogs = System.IO.File.ReadAllText(logFilePath);
+            if (!string.IsNullOrWhiteSpace(existingLogs))
+                logs = JsonSerializer.Deserialize<List<object>>(existingLogs);
+        }
+
+        logs.Add(logEntry);
+        System.IO.File.WriteAllText(logFilePath, JsonSerializer.Serialize(logs, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    [HttpGet("logs")]
+    public IActionResult ObtenerLogs()
+    {
+        if (!System.IO.File.Exists(logFilePath))
+            return NotFound("No hay registros disponibles");
+
+        string logsContent = System.IO.File.ReadAllText(logFilePath);
+        if (string.IsNullOrWhiteSpace(logsContent))
+            return NotFound("El archivo de logs está vacío");
+
+        return Ok(JsonSerializer.Deserialize<List<object>>(logsContent));
+    }
+}
