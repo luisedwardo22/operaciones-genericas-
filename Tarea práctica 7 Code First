@@ -1,0 +1,208 @@
+[Route("api/products")]
+[ApiController]
+public class ProductsController : ControllerBase
+{
+    private readonly ApplicationDbContext _context;
+
+    public ProductsController(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    // Obtener el precio total de todos los productos
+    [HttpGet("total-price")]
+    public IActionResult GetTotalPrice()
+    {
+        var totalPrice = _context.Products.Sum(p => p.Price);
+        return Ok(totalPrice);
+    }
+
+    // Obtener el precio promedio de los productos
+    [HttpGet("average-price")]
+    public IActionResult GetAveragePrice()
+    {
+        var averagePrice = _context.Products.Average(p => p.Price);
+        return Ok(averagePrice);
+    }
+
+    // Obtener el precio máximo de los productos
+    [HttpGet("max-price")]
+    public IActionResult GetMaxPrice()
+    {
+        var maxPrice = _context.Products.Max(p => p.Price);
+        return Ok(maxPrice);
+    }
+
+    // Obtener la cantidad total de productos
+    [HttpGet("total-quantity")]
+    public IActionResult GetTotalQuantity()
+    {
+        var totalQuantity = _context.Products.Sum(p => p.Quantity);
+        return Ok(totalQuantity);
+    }
+
+    // Obtener el precio mínimo de los productos
+    [HttpGet("min-price")]
+    public IActionResult GetMinPrice()
+    {
+        var minPrice = _context.Products.Min(p => p.Price);
+        return Ok(minPrice);
+    }
+
+    // Obtener el número total de productos
+    [HttpGet("count")]
+    public IActionResult GetProductCount()
+    {
+        var count = _context.Products.Count();
+        return Ok(count);
+    }
+}
+
+Endpoints para Consultas;
+
+[Route("api/products")]
+[ApiController]
+public class ProductsController : ControllerBase
+{
+    private readonly ApplicationDbContext _context;
+
+    public ProductsController(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    // Obtener el producto con el precio más alto
+    [HttpGet("max-price")]
+    public IActionResult GetMaxPriceProduct()
+    {
+        var maxPriceProduct = _context.Products
+            .OrderByDescending(p => p.Price)
+            .FirstOrDefault();
+
+        return Ok(maxPriceProduct);
+    }
+
+    // Obtener el producto con el precio más bajo
+    [HttpGet("min-price")]
+    public IActionResult GetMinPriceProduct()
+    {
+        var minPriceProduct = _context.Products
+            .OrderBy(p => p.Price)
+            .FirstOrDefault();
+
+        return Ok(minPriceProduct);
+    }
+
+    // Obtener la suma total de los precios de todos los productos
+    [HttpGet("total-price")]
+    public IActionResult GetTotalPrice()
+    {
+        var totalPrice = _context.Products.Sum(p => p.Price);
+        return Ok(totalPrice);
+    }
+
+    // Obtener el precio promedio de todos los productos
+    [HttpGet("average-price")]
+    public IActionResult GetAveragePrice()
+    {
+        var averagePrice = _context.Products.Average(p => p.Price);
+        return Ok(averagePrice);
+    }
+
+    // Obtener los productos de una categoría específica
+    [HttpGet("category/{categoryId}")]
+    public IActionResult GetProductsByCategory(int categoryId)
+    {
+        var products = _context.Products
+            .Where(p => p.CategoryId == categoryId)
+            .ToList();
+
+        return Ok(products);
+    }
+
+    // Obtener los productos de un proveedor específico
+    [HttpGet("supplier/{supplierId}")]
+    public IActionResult GetProductsBySupplier(int supplierId)
+    {
+        var products = _context.Products
+            .Where(p => p.SupplierId == supplierId)
+            .ToList();
+
+        return Ok(products);
+    }
+
+    // Obtener la cantidad total de productos registrados
+    [HttpGet("count")]
+    public IActionResult GetProductCount()
+    {
+        var count = _context.Products.Count();
+        return Ok(count);
+    }
+}
+
+CRUD para las Entidades;
+
+[Route("api/suppliers")]
+[ApiController]
+public class SuppliersController : ControllerBase
+{
+    private readonly ApplicationDbContext _context;
+
+    public SuppliersController(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    // Crear un nuevo proveedor
+    [HttpPost]
+    public IActionResult CreateSupplier([FromBody] Supplier supplier)
+    {
+        _context.Suppliers.Add(supplier);
+        _context.SaveChanges();
+        return CreatedAtAction(nameof(GetSupplier), new { id = supplier.SupplierId }, supplier);
+    }
+
+    // Obtener un proveedor por ID
+    [HttpGet("{id}")]
+    public IActionResult GetSupplier(int id)
+    {
+        var supplier = _context.Suppliers.Find(id);
+        if (supplier == null)
+        {
+            return NotFound();
+        }
+        return Ok(supplier);
+    }
+
+    // Actualizar un proveedor
+    [HttpPut("{id}")]
+    public IActionResult UpdateSupplier(int id, [FromBody] Supplier supplier)
+    {
+        if (id != supplier.SupplierId)
+        {
+            return BadRequest();
+        }
+
+        _context.Entry(supplier).State = EntityState.Modified;
+        _context.SaveChanges();
+
+        return NoContent();
+    }
+
+    // Eliminar un proveedor
+    [HttpDelete("{id}")]
+    public IActionResult DeleteSupplier(int id)
+    {
+        var supplier = _context.Suppliers.Find(id);
+        if (supplier == null)
+        {
+            return NotFound();
+        }
+
+        _context.Suppliers.Remove(supplier);
+        _context.SaveChanges();
+
+        return NoContent();
+    }
+}
+
