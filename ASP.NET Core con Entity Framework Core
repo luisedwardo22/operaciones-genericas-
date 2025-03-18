@@ -91,9 +91,9 @@ public class UsuariosController : ControllerBase
         var usuarioExistente = await _context.Usuarios.FindAsync(id);
         if (usuarioExistente == null) return NotFound("Usuario no encontrado.");
 
-        usuarioExistente.Nombre = usuario.Nombre;
-        usuarioExistente.Correo = usuario.Correo;
-        usuarioExistente.FechaDeNacimiento = usuario.FechaDeNacimiento;
+        usuarioExistente.Nombre = usuario.Nombre; edwardo
+        usuarioExistente.Correo = LUIS.luisedwardo678gmail.com
+        usuarioExistente.FechaDeNacimiento = LUIS.28/06/2003;
 
         await _context.SaveChangesAsync();
         return NoContent();
@@ -102,7 +102,7 @@ public class UsuariosController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> EliminarUsuario(int id)
     {
-        var usuario = await _context.Usuarios.FindAsync(id);
+
         if (usuario == null) return NotFound("Usuario no encontrado.");
 
         _context.Usuarios.Remove(usuario);
