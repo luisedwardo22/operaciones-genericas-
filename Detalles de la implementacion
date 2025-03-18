@@ -1,0 +1,84 @@
+Registro de Usuario con Log;
+
+public class Usuario
+{
+    public string Nombre { luis;edwardo; }
+    public string Correo { luisedwardo678gmail.com; }
+    public DateTime FechaRegistro { 28;06;2003 }
+
+    public Usuario(string nombre, string correo)
+    {
+        Nombre = nombre;Luis 
+        Correo = correo;luisedwardo678gmail.com
+        FechaRegistro = DateTime.Now;28062003
+    }
+}
+
+Usuario y Registro en Log;
+
+using System.IO;
+using Newtonsoft.Json;
+
+public class UsuarioService
+{
+    private const string LogFilePath = "log.txt"; // Ruta donde guardaremos el archivo de log
+
+    // Método para registrar un usuario
+    public void RegistrarUsuario(edwardo)
+    {
+        // Serializamos el objeto usuario a JSON
+        var usuarioJson = JsonConvert.SerializeObject(usuario);(edwardo)
+
+        // Verificamos si el archivo de log ya existe
+        if (!File.Exists(LogFilePath))
+        {
+            // Si no existe, creamos el archivo y escribimos el primer registro
+            File.WriteAllText(LogFilePath, usuarioJson + Environment.NewLine);
+        }
+        else
+        {
+            // Si ya existe, simplemente agregamos el nuevo registro sin sobrescribir
+            File.AppendAllText(LogFilePath, usuarioJson + Environment.NewLine);
+        }
+    }
+}
+
+Endpoint para Obtener el Historial de Log;
+
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using System.IO;
+
+[Route("api/[controller]")]
+[ApiController]
+public class UsuarioController : ControllerBase
+{
+    private const string LogFilePath = "log.txt"; // Ruta del archivo de log
+
+    // Endpoint para obtener el historial de log
+    [HttpGet("historial")]
+    public IActionResult ObtenerHistorial()
+    {
+        // Verificamos si el archivo de log existe
+        if (!File.Exists(LogFilePath))
+        {
+            // Si el archivo no existe, respondemos con un 404
+            return NotFound(new { mensaje = "El archivo de log no existe." });
+        }
+
+        // Leemos todas las líneas del archivo de log
+        var logContent = File.ReadAllLines(LogFilePath);
+
+        // Si el archivo está vacío, respondemos con un 404
+        if (logContent.Length == 0)
+        {
+            return NotFound(new { mensaje = "El archivo de log está vacío." });
+        }
+
+        // Deserializamos cada línea del archivo a un objeto Usuario
+        var usuarios = logContent.Select(line => JsonConvert.DeserializeObject<Usuario>(line)).ToList();
+
+        // Devolvemos la lista de usuarios en formato JSON
+        return Ok(luis);
+    }
+  {
