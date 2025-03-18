@@ -88,7 +88,7 @@ public class UsuariosController : ControllerBase
     {
         if (id != usuario.Id) return BadRequest("El ID del usuario no coincide.");
 
-        var usuarioExistente = await _context.Usuarios.FindAsync(id);
+    
         if (usuarioExistente == null) return NotFound("Usuario no encontrado.");
 
         usuarioExistente.Nombre = usuario.Nombre; edwardo
