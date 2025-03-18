@@ -1,0 +1,103 @@
+
+  using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+[Route("api/[controller]")]
+[ApiController]
+public class UsersController : ControllerBase
+{
+    private readonly IUserService _userService;
+    private readonly string logFilePath = "user_logs.json";
+
+    public UsersController(IUserService userService)
+    {
+        _userService = userService;
+    }
+
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] UserDto userDto)
+    {
+        // Llamada al servicio para crear el usuario
+        var user = await _userService.CreateUserAsync(userDto);
+        if (user == null)
+        {
+            return BadRequest("Error al registrar el usuario.");
+        }
+
+        // Registrar usuario en el log
+        LogUserRegistration(user);
+        return Ok(user);
+    }
+
+    private void LogUserRegistration(User user)
+    {
+        var logEntry = new
+        {
+            Timestamp = DateTime.UtcNow,
+            UserId = user.Id,
+            Username = user.Username,
+            Email = user.Email
+        };
+
+        List<object> logEntries = new List<object>();
+        
+        // Leer logs existentes si el archivo ya existe
+        if (File.Exists(logFilePath))
+        {
+            var existingLogs = File.ReadAllText(logFilePath);
+            if (!string.IsNullOrWhiteSpace(existingLogs))
+            {
+                logEntries = JsonConvert.DeserializeObject<List<object>>(existingLogs) ?? new List<object>();
+            }
+        }
+
+        // Agregar nueva entrada al log
+        logEntries.Add(logEntry);
+        
+        // Guardar los logs actualizados en el archivo
+        File.WriteAllText(logFilePath, JsonConvert.SerializeObject(logEntries, Formatting.Indented));
+    }
+
+    [HttpGet("logs")]
+    public IActionResult GetLogs()
+    {
+        // Verificar si el archivo de logs existe
+        if (!File.Exists(logFilePath))
+        {
+            return NotFound("No hay registros disponibles.");
+        }
+
+        // Leer y devolver el contenido del log
+        var logs = File.ReadAllText(logFilePath);
+        return Ok(JsonConvert.DeserializeObject<List<object>>(logs));
+    }
+}
+
+public class UserDto
+{
+    public string Username { get; set; }
+    public string Email { get; set; }
+    public string Password { get; set; }
+}
+
+public class User
+{
+    public int Id { get; set; }
+    public string Username { get; set; }
+    public string Email { get; set; }
+}
+
+public interface IUserService
+{
+    // Interfaz para la creación de usuarios
+    Task<User> CreateUserAsync(UserDto userDto);
+}
+ 
+
+ 
