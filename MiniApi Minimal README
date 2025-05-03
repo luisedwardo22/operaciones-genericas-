@@ -1,0 +1,60 @@
+using Microsoft.AspNetCore.Mvc;
+using MiApiMinimal.Models;
+
+namespace MiApiMinimal.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class ProductoController : ControllerBase
+    {
+        private static List<Producto> productos = new List<Producto>
+        {
+            new Producto { Id = 1, Nombre = "Producto 1", Precio = 100 },
+            new Producto { Id = 2, Nombre = "Producto 2", Precio = 200 }
+        };
+
+        [HttpGet]
+        public IActionResult GetProductos() => Ok(productos);
+
+        [HttpGet("{id}")]
+        public IActionResult GetProducto(int id)
+        {
+            var producto = productos.FirstOrDefault(p => p.Id == id);
+            if (producto == null)
+                return NotFound();
+            return Ok(producto);
+        }
+
+        [HttpPost]
+        public IActionResult CrearProducto([FromBody] Producto producto)
+        {
+            producto.Id = productos.Max(p => p.Id) + 1;
+            productos.Add(producto);
+            return CreatedAtAction(nameof(GetProducto), new { id = producto.Id }, producto);
+        }
+
+        [HttpPut("{id}")]
+        public IActionResult ActualizarProducto(int id, [FromBody] Producto productoActualizado)
+        {
+            var producto = productos.FirstOrDefault(p => p.Id == id);
+            if (producto == null)
+                return NotFound();
+
+            producto.Nombre = productoActualizado.Nombre;
+            producto.Precio = productoActualizado.Precio;
+
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public IActionResult EliminarProducto(int id)
+        {
+            var producto = productos.FirstOrDefault(p => p.Id == id);
+            if (producto == null)
+                return NotFound();
+
+            productos.Remove(producto);
+            return NoContent();
+        }
+    }
+}
