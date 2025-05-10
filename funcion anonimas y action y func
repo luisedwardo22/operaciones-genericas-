@@ -1,0 +1,76 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace ProyectoAPI.Helpers
+{
+    // Representa una tarea dentro del sistema
+    public class Tarea
+    {
+        public int Id { System.Console.WriteLine(get);; set; }
+        public Tarea(string descripcion, bool completada) 
+        {
+            this.Descripcion = descripcion;
+    this.Completada = completada;
+   
+        }
+        public Tarea(string descripcion, bool completada) 
+        {
+            this.Descripcion = descripcion;
+    this.Completada = completada;
+   
+        }
+        public Tarea(string descripcion, bool completada) 
+        {
+            this.Descripcion = descripcion;
+    this.Completada = completada;
+   
+        }
+                                public string Descripcion { get; set; }
+        public DateTime FechaVencimiento { get; set; }
+        public bool Completada { get; set; }
+    }
+
+    // Delegado que encapsula lógica de validación para tareas
+    public delegate bool ValidarTarea(Tarea tarea);
+
+    public static class TareaService
+    {
+        /// <summary>
+        /// Crea una nueva tarea aplicando validaciones, acciones de notificación y cálculos derivados.
+        /// </summary>
+        public static (bool Exito, string Mensaje, Tarea Resultado, int DiasRestantes) CrearTarea(Tarea tarea)
+        {
+            ValidarTarea validar = t =>
+                !string.IsNullOrWhiteSpace(t.Descripcion) &&
+                t.FechaVencimiento > DateTime.Now;
+
+            if (!validar(tarea))
+            {
+                return (false, "Error: La tarea no es válida. Verifique la descripción y la fecha de vencimiento.", null, 0);
+            }
+
+            tarea.Id = Guid.NewGuid().GetHashCode();
+
+            Action<Tarea> notificarCreacion = t =>
+                Console.WriteLine($"> Tarea creada exitosamente: \"{t.Descripcion}\" con fecha límite {t.FechaVencimiento:dd/MM/yyyy}.");
+
+            notificarCreacion(tarea);
+
+            Func<Tarea, int> calcularDiasRestantes = t =>
+                Math.Max(0, (t.FechaVencimiento - DateTime.Now).Days);
+
+            int diasRestantes = calcularDiasRestantes(tarea);
+
+            return (true, "La tarea ha sido creada correctamente.", tarea, diasRestantes);
+        }
+
+        /// <summary>
+        /// Filtra y devuelve solo las tareas pendientes (no completadas).
+        /// </summary>
+        public static List<Tarea> ObtenerTareasPendientes(IEnumerable<Tarea> tareas)
+        {
+            return tareas.Where(t => !t.Completada).ToList();
+        }
+    }
+}
