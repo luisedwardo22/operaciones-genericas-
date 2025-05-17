@@ -1,0 +1,59 @@
+using Microsoft.AspNetCore.Mvc;
+using ProyectoAPI.Data;
+using ProyectoAPI.Factories;
+using ProyectoAPI.Models;
+using ProyectoAPI.Dtos;
+
+namespace ProyectoAPI.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class TareasController : ControllerBase
+    {
+        private readonly ApplicationDbContext _context;
+
+        public TareasController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        /// <summary>
+        /// Crea una tarea de alta prioridad.
+        /// </summary>
+        /// <param name="dto">Datos de la tarea.</param>
+        [HttpPost("crear/alta")]
+        public async Task<IActionResult> CrearTareaAlta([FromBody] TareaCreateDto dto)
+        {
+            var tarea = TareaFactory.CrearTareaAltaPrioridad(dto.Titulo);
+            _context.Tareas.Add(tarea);
+            await _context.SaveChangesAsync();
+            return Ok(tarea);
+        }
+
+        /// <summary>
+        /// Crea una tarea de media prioridad.
+        /// </summary>
+        /// <param name="dto">Datos de la tarea.</param>
+        [HttpPost("crear/media")]
+        public async Task<IActionResult> CrearTareaMedia([FromBody] TareaCreateDto dto)
+        {
+            var tarea = TareaFactory.CrearTareaMediaPrioridad(dto.Titulo);
+            _context.Tareas.Add(tarea);
+            await _context.SaveChangesAsync();
+            return Ok(tarea);
+        }
+
+        /// <summary>
+        /// Crea una tarea de baja prioridad.
+        /// </summary>
+        /// <param name="dto">Datos de la tarea.</param>
+        [HttpPost("crear/baja")]
+        public async Task<IActionResult> CrearTareaBaja([FromBody] TareaCreateDto dto)
+        {
+            var tarea = TareaFactory.CrearTareaBajaPrioridad(dto.Titulo);
+            _context.Tareas.Add(tarea);
+            await _context.SaveChangesAsync();
+            return Ok(tarea);
+        }
+    }
+}
