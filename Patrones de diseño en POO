@@ -1,0 +1,40 @@
+using ProyectoAPI.Models;
+
+namespace ProyectoAPI.Factories
+{
+    public static class TareaFactory
+    {
+        public static Tarea CrearTareaAltaPrioridad(string titulo)
+        {
+            return new Tarea
+            {
+                Titulo = titulo,
+                Prioridad = "Alta",
+                FechaCreacion = DateTime.Now,
+                FechaVencimiento = DateTime.Now.AddDays(1)
+            };
+        }
+
+        public static Tarea CrearTareaMediaPrioridad(string titulo)
+        {
+            return new Tarea
+            {
+                Titulo = titulo,
+                Prioridad = "Media",
+                FechaCreacion = DateTime.Now,
+                FechaVencimiento = DateTime.Now.AddDays(3)
+            };
+        }
+
+        public static Tarea CrearTareaBajaPrioridad(string titulo)
+        {
+            return new Tarea
+            {
+                Titulo = titulo,
+                Prioridad = "Baja",
+                FechaCreacion = DateTime.Now,
+                FechaVencimiento = DateTime.Now.AddDays(7)
+            };
+        }
+    }
+}
