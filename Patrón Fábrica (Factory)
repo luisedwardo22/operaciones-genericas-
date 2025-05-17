@@ -1,0 +1,46 @@
+using Microsoft.AspNetCore.Mvc;
+using ProyectoAPI.Data;
+using ProyectoAPI.Factories;
+using ProyectoAPI.Models;
+
+namespace ProyectoAPI.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class TareasController : ControllerBase
+    {
+        private readonly ApplicationDbContext _context;
+
+        public TareasController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        [HttpPost("crear/alta")]
+        public async Task<IActionResult> CrearTareaAlta([FromBody] string titulo)
+        {
+            var tarea = TareaFactory.CrearTareaAltaPrioridad(titulo);
+            _context.Tareas.Add(tarea);
+            await _context.SaveChangesAsync();
+            return Ok(tarea);
+        }
+
+        [HttpPost("crear/media")]
+        public async Task<IActionResult> CrearTareaMedia([FromBody] string titulo)
+        {
+            var tarea = TareaFactory.CrearTareaMediaPrioridad(titulo);
+            _context.Tareas.Add(tarea);
+            await _context.SaveChangesAsync();
+            return Ok(tarea);
+        }
+
+        [HttpPost("crear/baja")]
+        public async Task<IActionResult> CrearTareaBaja([FromBody] string titulo)
+        {
+            var tarea = TareaFactory.CrearTareaBajaPrioridad(titulo);
+            _context.Tareas.Add(tarea);
+            await _context.SaveChangesAsync();
+            return Ok(tarea);
+        }
+    }
+}
