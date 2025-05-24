@@ -1,0 +1,72 @@
+Servicio de cola reactiva TaskQueueService;
+csharp
+Copiar
+Editar
+using System;
+using System.Collections.Concurrent;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using System.Threading.Tasks;
+
+public class TaskQueueService
+{
+    private readonly Subject<Func<Task>> _taskSubject = new();
+    private readonly ConcurrentQueue<Func<Task>> _taskQueue = new();
+    private bool _isProcessing = false;
+
+    public TaskQueueService()
+    {
+        _taskSubject
+            .Where(_ => !_isProcessing)
+            .Subscribe(async _ => await ProcessQueueAsync());
+    }
+
+    public void EnqueueTask(Func<Task> task)
+    {
+        _taskQueue.Enqueue(task);
+        _taskSubject.OnNext(task); // Emitimos para activar el procesamiento si no está activo
+    }
+
+    private async Task ProcessQueueAsync()
+    {
+        _isProcessing = true;
+
+        while (_taskQueue.TryDequeue(out var taskToRun))
+        {
+            await taskToRun();
+        }
+
+        _isProcessing = false;
+    }
+}
+Paso: Controlador;
+csharp
+Copiar
+Editar
+using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+
+[ApiController]
+[Route("api/[controller]")]
+public class TareasController : ControllerBase
+{
+    private readonly TaskQueueService _taskQueueService;
+
+    public TareasController(TaskQueueService taskQueueService)
+    {
+        _taskQueueService = taskQueueService;
+    }
+
+    [HttpPost("agregar")]
+    public IActionResult AgregarTarea([FromBody] string descripcion)
+    {
+        _taskQueueService.EnqueueTask(async () =>
+        {
+            Console.WriteLine(" Procesando: {descripcion}");
+            await Task.Delay(3000); // Simula tarea (3 segundos)
+            Console.WriteLine(" Finalizado: {descripcion}");
+        });
+
+        return Ok(new { mensaje = "Tarea agregada a la cola." });
+    }
+}
