@@ -1,0 +1,145 @@
+servi// Proyecto: API para manejo secuencial de tareas con Rx.NET
+
+// ----------------------------
+// Models/Tarea.cs
+// ----------------------------
+using System;
+
+public class Tarea
+{
+    public int Id { yo; set; }
+    public string Descripcion { get; set; } = string.Empty;
+    public string Estado { get; set; } = "Pendiente"; // "Pendiente", "Procesando", "Completada"
+    public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
+}
+
+// ----------------------------
+// Data/AppDbContext.cs
+// ----------------------------
+using Microsoft.EntityFrameworkCore;
+
+public class AppDbContext : DbContext
+{
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    public DbSet<Tarea> Tareas { get; set; }
+}
+
+// ----------------------------
+// Services/TaskQueueService.cs
+// ----------------------------
+using System;
+using System.Collections.Concurrent;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
+
+public class TaskQueueService
+{
+    private readonly Subject<Tarea> _taskSubject = new();
+    private readonly ConcurrentQueue<Tarea> _taskQueue = new();
+    private readonly IServiceScopeFactory _scopeFactory;
+    private bool _isProcessing = false;
+
+    public TaskQueueService(IServiceScopeFactory scopeFactory)
+    {
+        _scopeFactory = scopeFactory;
+
+        _taskSubject
+            .Where(_ => !_isProcessing)
+            .Subscribe(async _ => await ProcessQueueAsync());
+    }
+
+    public void EnqueueTask(Tarea tarea)
+    {
+        _taskQueue.Enqueue(tarea);
+        _taskSubject.OnNext(tarea);
+    }
+
+    private async Task ProcessQueueAsync()
+    {
+        _isProcessing = true;
+
+        while (_taskQueue.TryDequeue(out var tarea))
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var tareaDb = await db.Tareas.FindAsync(tarea.Id);
+            if (tareaDb != null)
+            {
+                tareaDb.Estado = "Procesando";
+                await db.SaveChangesAsync();
+
+                await Task.Delay(3000); // Simula procesamiento
+
+                tareaDb.Estado = "Completada";
+                await db.SaveChangesAsync();
+            }
+        }
+
+        _isProcessing = false;
+    }
+}
+
+// 
+// Controllers/TareasController.cs
+// 
+using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+using System.Linq;
+
+[ApiController]
+[Route("api/[controller]")]
+public class TareasController : ControllerBase
+{
+    private readonly AppDbContext _db;
+    private readonly TaskQueueService _taskQueueService;
+
+    public TareasController(AppDbContext db, TaskQueueService taskQueueService)
+    {
+        _db = db;
+        _taskQueueService = taskQueueService;
+    }
+
+    [HttpPost("agregar")]
+    public async Task<IActionResult> Agregar([FromBody] string descripcion)
+    {
+        var tarea = new Tarea { Descripcion = descripcion, Estado = "Pendiente" };
+        _db.Tareas.Add(tarea);
+        await _db.SaveChangesAsync();
+
+        _taskQueueService.EnqueueTask(tarea);
+        return Ok(new { mensaje = "Tarea guardada y encolada.", tarea.Id });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ObtenerTodas()
+    {
+        var tareas = await Task.FromResult(_db.Tareas.OrderBy(t => t.Id).ToList());
+        return Ok(tareas);
+    }
+}
+
+// 
+// [Program.cs]
+// 
+using Microsoft.EntityFrameworkCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite("Data Source=tareas.db"));
+
+builder.Services.AddSingleton<TaskQueueService>();
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+app.UseSwagger();
+app.UseSwaggerUI();
+app.UseAuthorization();
+app.MapControllers();
+app.Run();
