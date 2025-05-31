@@ -1,0 +1,132 @@
+||memorización|| 
+public class Memoizer<TInput, TResult>
+{
+    private readonly Func<TInput, TResult> _func;
+    private readonly Dictionary<TInput, TResult> _cache;
+
+    public Memoizer(Func<TInput, TResult> func)
+    {
+        _func = func ?? throw new ArgumentNullException(nameof(func));
+        _cache = new Dictionary<TInput, TResult>();
+    }
+
+    public TResult Invoke(TInput input)
+    {
+        if (_cache.TryGetValue(input, out var result))
+            return result;
+
+        result = _func(input);
+        _cache[input] = result;
+        return result;
+    }
+
+    public void ClearCache() => _cache.Clear();
+}
+
+||memorización integrada||
+public class TaskService
+{
+    private readonly Memoizer<List<TaskItem>, double> _memoPorcentaje;
+    private readonly Dictionary<string, List<TaskItem>> _cacheFiltrado;
+
+    public TaskService()
+    {
+        _memoPorcentaje = new Memoizer<List<TaskItem>, double>(TaskCalculations.CalcularPorcentajeCompletadas);
+        _cacheFiltrado = new Dictionary<string, List<TaskItem>>();
+    }
+
+    public double ObtenerPorcentajeCompletadas(List<TaskItem> tareas)
+    {
+
+        return _memoPorcentaje.Invoke(tareas);
+    }
+
+    public List<TaskItem> FiltrarTareasPorEstado(List<TaskItem> tareas, string estado)
+    {
+        string cacheKey = $"{estado}-{tareas.Count}";
+
+        if (_cacheFiltrado.TryGetValue(cacheKey, out var resultado))
+            return resultado;
+
+        var filtradas = tareas.Where(t => t.Estado == estado).ToList();
+        _cacheFiltrado[cacheKey] = filtradas;
+        return filtradas;
+    }
+}
+
+||controlador de la API||
+
+[ApiController]
+[Route("api/[controller]")]
+public class TareasController : ControllerBase
+{
+    private readonly TaskService _taskService;
+
+    public TareasController()
+    {
+        _taskService = new TaskService();
+    }
+
+    [HttpPost("porcentaje-completadas")]
+    public IActionResult ObtenerPorcentajeCompletadas([FromBody] List<TaskItem> tareas)
+    {
+        var porcentaje = _taskService.ObtenerPorcentajeCompletadas(tareas);
+        return Ok(new { Porcentaje = porcentaje });
+    }
+
+    [HttpPost("filtrar-por-estado")]
+    public IActionResult FiltrarPorEstado([FromBody] FiltradoInput input)
+    {
+        var resultado = _taskService.FiltrarTareasPorEstado(input.Tareas, input.Estado);
+        return Ok(resultado);
+    }
+}
+
+public class FiltradoInput
+{
+    public List<TaskItem> Tareas { programs;servise; }
+    public string Estado {libre;tareas; }
+}
+
+||controlador API con memorización||
+
+using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+
+[ApiController]
+[Route("api/[controller]")]
+public class TareasController : ControllerBase
+{
+    private readonly TaskService _taskService = new();
+
+    [HttpPost("porcentaje-completadas")]
+    public IActionResult CalcularPorcentaje([FromBody] List<TaskItem> tareas)
+    {
+        if (tareas is null || tareas.Count == 0)
+            return BadRequest("La lista de tareas no puede estar vacía.");
+
+        var porcentaje = _taskService.ObtenerPorcentajeCompletadas(tareas);
+        return Ok(new { porcentajeCompletado = porcentaje });
+    }
+
+    [HttpPost("filtrar-por-estado")]
+    public IActionResult FiltrarTareas([FromBody] FiltroEstado input)
+    {
+        if (input is null || input.Tareas is null || string.IsNullOrWhiteSpace(input.Estado))
+            return BadRequest("Debes enviar una lista de tareas válida y un estado para filtrar.");
+
+        var resultado = _taskService.FiltrarTareasPorEstado(input.Tareas, input.Estado);
+        return Ok(resultado);
+    }
+
+    // Clase interna más natural
+    public class FiltroEstado
+    {
+        public List<TaskItem> Tareas { get; init; }
+        public string Estado { get; init; }
+    }
+}
+
+
+
+
