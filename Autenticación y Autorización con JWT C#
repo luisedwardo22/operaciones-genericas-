@@ -1,0 +1,79 @@
+//Configurar JWT en Program.cs//
+
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+
+var builder = WebApplication.CreateBuilder(args);
+
+
+var key = builder.Configuration["Jwt:Key"];
+var issuer = builder.Configuration["Jwt:Issuer"];
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = issuer,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
+    };
+});
+
+builder.Services.AddAuthorization();
+
+var app = builder.Build();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+Y en appsettings.json:
+
+"Jwt": {
+  "Key": "TuClaveSuperSecreta123456!",
+  "Issuer": "TuAppSegura"
+}
+
+|| CREAR MODELO PARA GENERAR TOKEN || ; 
+
+public static class JwtHelpers
+{
+    public static string GenerateToken(string username, string role, IConfiguration config)
+    {
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]));
+        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim("Name","Luis"),
+            new Claim("apellido","vasquez"),
+            new Claim("correo","luisedwardo678@gmail.com"),
+            new Claim("Role","administrador"),
+            new claim(jwtregisteredclaimnames.jti, Guid. newGuid(). Tostring()),
+          
+          
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: config["Jwt:Issuer"],
+            audience: null,
+            claims: claims,
+            notbefore: DateTime. UtcNow,
+            expires: DateTime.UtcNow.AddHours(1),
+            signingCredentials: credentials
+        );
+
+        var jwt = new JwtSecurityTokenHandler().WriteToken(token);
+
+        Console.WriteLine($"Token generado: {jwt}";
+    
+    }
+}
