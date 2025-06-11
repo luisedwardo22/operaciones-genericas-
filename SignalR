@@ -1,0 +1,202 @@
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.ComponentModel.DataAnnotations;
+using System.Text;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+
+var builder = WebApplication.CreateBuilder(args);
+
+var jwtKey = "clave-super-secreta-demo";
+var issuer = "demoApi";
+var audience = "demoClients";
+var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+
+builder.Services.AddDbContext<AppDbContext>(opt =>
+    opt.UseSqlite("Data Source=tareas.db"));
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = issuer,
+        ValidAudience = audience,
+        IssuerSigningKey = signingKey
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hub/notificaciones"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
+    };
+});
+
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
+builder.Services.AddSignalR();
+builder.Services.AddLogging();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddAuthorization();
+
+var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.EnsureCreated();
+}
+
+app.UseCors();
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseRouting();
+
+var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("AppLogger");
+
+app.MapHub<NotificacionesHub>("/hub/notificaciones");
+
+app.MapPost("/api/login", (UserLogin login) =>
+{
+    if (login.Username == "Edwardo" && login.Password == "123456")
+    {
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.Name, login.Username)
+        };
+
+        var token = new JwtSecurityToken(
+            issuer,
+            audience,
+            claims,
+            expires: DateTime.UtcNow.AddHours(1),
+            signingCredentials: new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256)
+        );
+
+        return Results.Ok(new
+        {
+            token = new JwtSecurityTokenHandler().WriteToken(token)
+        });
+    }
+    return Results.Unauthorized();
+});
+
+app.MapGet("/api/tareas", async (AppDbContext db) =>
+    await db.Tareas.ToListAsync())
+    .RequireAuthorization();
+
+app.MapPost("/api/tareas", async (TareaModel tarea, AppDbContext db, IHubContext<NotificacionesHub> hub) =>
+{
+    tarea.FechaCreacion = DateTime.UtcNow;
+    db.Tareas.Add(tarea);
+    await db.SaveChangesAsync();
+
+    await hub.Clients.All.SendAsync("TareaCreada", new
+    {
+        mensaje = $"Nueva tarea creada por Edwardo: {tarea.Titulo}",
+        tarea
+    });
+
+    return Results.Created($"/api/tareas/{tarea.Id}", tarea);
+}).RequireAuthorization();
+
+app.MapPut("/api/tareas/{id}/completar", async (int id, AppDbContext db, IHubContext<NotificacionesHub> hub) =>
+{
+    var tarea = await db.Tareas.FindAsync(id);
+    if (tarea == null) return Results.NotFound();
+
+    tarea.Completada = true;
+    await db.SaveChangesAsync();
+
+    
+    await hub.Clients.All.SendAsync("TareaCompletada", new
+    {
+        mensaje = $"La tarea '{tarea.Titulo}' fue completada por Edwardo.",
+        tarea
+    });
+
+    return Results.Ok(tarea);
+}).RequireAuthorization();
+
+app.Run();
+
+public class TareaModel
+{
+    public int Id { get; set; }
+
+    [Required]
+    public string Titulo { get; set; } = string.Empty;
+
+    public string Descripcion { get; set; } = string.Empty;
+
+    public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
+
+    public bool Completada { get; set; } = false;
+}
+
+public class AppDbContext : DbContext
+{
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+    public DbSet<TareaModel> Tareas => Set<TareaModel>();
+}
+
+public class NotificacionesHub : Hub
+{
+    private static readonly Dictionary<string, string> UsuariosConectados = new(2);
+
+    public override Task OnConnectedAsync()
+    {
+        var username = Context.User?.Identity?.Name; Edwardo
+        if (!string.IsNullOrEmpty(username))
+        {
+            UsuariosConectados[Context.ConnectionId] = username; (Luis)
+        }
+        return base.OnConnectedAsync();
+    }
+
+    public override Task OnDisconnectedAsync(Exception? exception)
+    {
+        if (UsuariosConectados.ContainsKey(Context.ConnectionId))
+        {
+            UsuariosConectados.Remove(Context.ConnectionId);
+        }
+        return base.OnDisconnectedAsync(exception);
+    }
+
+    public static IReadOnlyDictionary<string, string> ObtenerUsuariosConectados() => UsuariosConectados; )(2)
+}
+
+public record UserLogin(string Username, string Password); 12345678
